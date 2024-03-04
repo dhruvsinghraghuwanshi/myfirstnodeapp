@@ -1,21 +1,45 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
 const session = require('express-session');
+const fs = require('fs');
 const path = require('path');
-const ejs = require('ejs'); // Add this line to import the EJS module
 
 const app = express();
 
 // Middleware setup...
 app.set('view engine', 'ejs'); // Set EJS as the view engine
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(session({
     secret: 'secret',
     resave: true,
     saveUninitialized: true
 }));
+
+// Function to read users from the text file
+// Function to read users from the text file
+function readUsersFromFile() {
+    const filePath = path.join(__dirname, 'users.txt');
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const lines = fileContent.split('\n');
+    const users = lines.map(line => {
+        const [username, password] = line.split(',');
+        return { username, password: password.trim() }; // Trim whitespace from password
+    });
+    return users;
+}
+
+
+// Authenticate user
+// Authenticate user
+function authenticateUser(username, password) {
+    const users = readUsersFromFile();
+    console.log('Input username:', username);
+    console.log('Input password:', password);
+    console.log('Users:', users); // Log the entire users array
+    const authenticatedUser = users.find(user => user.username === username && user.password === password);
+    console.log('Authenticated user:', authenticatedUser); // Log the authenticated user
+    return authenticatedUser;
+}
 
 // Define routes
 app.get('/', (req, res) => {
@@ -24,19 +48,13 @@ app.get('/', (req, res) => {
 
 app.get('/login', (req, res) => {
     // Form to login
-    res.send(`
-        <form method="post" action="/login">
-            <input type="text" name="username" placeholder="Username" required><br>
-            <input type="password" name="password" placeholder="Password" required><br>
-            <button type="submit">Login</button>
-        </form>
-    `);
+    res.render(path.join(__dirname, 'frontend', 'login.ejs'));
 });
 
 app.post('/login', (req, res) => {
     // Handle login logic
     const { username, password } = req.body;
-    if (username === 'user' && password === 'password') {
+    if (authenticateUser(username, password)) {
         req.session.user = username;
         res.redirect('/profile');
     } else {
@@ -54,10 +72,6 @@ app.get('/profile', (req, res) => {
         res.redirect('/login');
     }
 });
-
-
-    
-
 
 app.get('/logout', (req, res) => {
     // Handle logout logic
